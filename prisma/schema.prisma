@@ -29,6 +29,7 @@ model User {
   numberOfEmployee   String?
   website            String?
   businessAddress    String?
+  refreshToken       String?
   isNotification     Boolean @default(false)
 
   createdAt DateTime @default(now())
