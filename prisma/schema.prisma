@@ -58,7 +58,7 @@ model Job {
   projectDescription                   String
   technicalDescriptionAndCertification String
   elevatorType                         String
-  numberOfElevator                     Int       @default(0)
+  numberOfElevator                     Int              @default(0)
   capasity                             String
   speed                                String
   address                              String
@@ -68,11 +68,11 @@ model Job {
   photo                                String
   documents                            String
   estimitedBudget                      String
-  jobStatus                            JobStatus @default(OPEN)
-
+  jobStatus                            JobStatus        @default(OPEN)
+  paymentStatus                        JobPaymentStatus @default(UNPAID)
   // Relations
-  bids    Bid[]
-  payment Payment? @relation(fields: [paymentId], references: [paymentId])
+  bids                                 Bid[]
+  payment                              Payment?         @relation(fields: [paymentId], references: [paymentId])
 
   paymentId String? @unique
 
@@ -134,6 +134,11 @@ enum Role {
   ELEVATOR
   ADMIN
   SUPER_ADMIN
+}
+
+enum JobPaymentStatus {
+  PAID
+  UNPAID
 }
 
 enum JobTypes {
