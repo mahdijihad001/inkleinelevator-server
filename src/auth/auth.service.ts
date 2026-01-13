@@ -1,12 +1,37 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from "bcrypt"
 import { ISignUp } from './type/SignUpType';
 import { JwtService } from '@nestjs/jwt';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import Stripe from 'stripe';
 
 @Injectable()
 export class AuthService {
-    constructor(private prisma: PrismaService, private JwtService: JwtService) { }
+    constructor(private prisma: PrismaService, private JwtService: JwtService, private CloudinaryService: CloudinaryService, @Inject('STRIPE') private stripe: Stripe) { }
+
+    async constractorStripeAccount(email: string) {
+        const account = await this.stripe.accounts.create({
+            type: 'express',
+            country: 'US',
+            email: email,
+            capabilities: {
+                card_payments: { requested: true },
+                transfers: { requested: true },
+            },
+        });
+        return account.id;
+    };
+
+    async elevatorStripeAccountAcive(vendorStripeAccountId) {
+        const accountLink = await this.stripe.accountLinks.create({
+            account: vendorStripeAccountId,
+            refresh_url: 'https://yourdomain.com/reauth',
+            return_url: 'https://yourdomain.com/success',
+            type: 'account_onboarding',
+        });
+        return accountLink.url
+    }
 
     async hashText(text: string) {
         const hash = await bcrypt.hash(text, 10);
@@ -78,7 +103,10 @@ export class AuthService {
     }
 
 
-    async signUp(data: ISignUp) {
+    async signUp(data: ISignUp, files: {
+        businessLogo: Express.Multer.File[],
+        licenseInfo: Express.Multer.File[]
+    }) {
         const isExist = await this.prisma.user.findFirst({
             where: {
                 OR: [
@@ -103,16 +131,29 @@ export class AuthService {
         };
 
         if (data.role === 'ELEVATOR') {
-            if (!data.companyName || !data.licenseInfo || !data.businessLogo) {
+            if (!data.companyName || !files.licenseInfo || !files.businessLogo) {
                 throw new HttpException(
                     'Company Name, License Info, and Business Logo are required for ELEVATOR role',
                     400,
                 );
             }
 
+            const businessLogoUpload: any =
+                await this.CloudinaryService.uploadFile(
+                    files.businessLogo[0],
+                    'business-logos',
+                );
+
+            const licenseInfoUpload: any =
+                await this.CloudinaryService.uploadFile(
+                    files.licenseInfo[0],
+                    'licenses',
+                );
+
             userData.companyName = data.companyName;
-            userData.licenseInfo = data.licenseInfo;
-            userData.businessLogo = data.businessLogo;
+            userData.licenseInfo = licenseInfoUpload?.secure_url;
+            userData.businessLogo = businessLogoUpload?.secure_url;
+            userData.stripeAccountId = await this.constractorStripeAccount(data.email)
         }
 
         return this.prisma.user.create({ data: userData });
@@ -167,6 +208,41 @@ export class AuthService {
         const tokens = this.getTokens(user?.userId);
 
         return tokens
+    }
+
+    async getMe(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User Not Found");
+
+        const { password, refreshToken, ...rest } = user;
+
+        return rest
+    }
+
+    async stripeElevatorAccountActive(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                userId: userId,
+                role: "ELEVATOR"
+            }
+        });
+
+        if (!user) {
+            throw new HttpException("Elevator Not Found", 404);
+        }
+
+        if (user && user?.role !== "ELEVATOR") {
+            throw new HttpException("You are Not Elevator", 400);
+        }
+
+        const url = this.elevatorStripeAccountAcive(user?.stripeAccountId);
+        return url;
+
     }
 
 }

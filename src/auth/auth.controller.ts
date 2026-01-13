@@ -1,9 +1,9 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto, SignUpDto } from './dto/user.request.dto';
-import { IUser } from './type/SignUpType';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
 @Controller('auth')
 export class AuthController {
@@ -12,10 +12,46 @@ export class AuthController {
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'User registration' })
-  @ApiBody({ type: SignUpDto })
-  async signUp(@Body() signUpDto: SignUpDto) {
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Mohammad Jihad' },
+        email: { type: 'string', example: 'user@gmail.com' },
+        phone: { type: 'string', example: '0178221212121' },
+        password: { type: 'string', example: '12345678' },
+        role: { type: 'string', enum: ['USER', 'ELEVATOR'] },
+        companyName: { type: 'string', example: 'ABC Elevator Ltd If You Are Elevator' },
 
-    const result = await this.authService.signUp(signUpDto);
+        businessLogo: {
+          type: 'string',
+          format: 'binary',
+        },
+        licenseInfo: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'businessLogo', maxCount: 1 },
+      { name: 'licenseInfo', maxCount: 1 },
+
+    ])
+  )
+  async signUp(@Body() signUpDto: SignUpDto, @UploadedFiles()
+  files: {
+    businessLogo?: Express.Multer.File[];
+    licenseInfo?: Express.Multer.File[];
+  },) {
+
+    const businessLogo = files.businessLogo ?? [];
+    const licenseInfo = files.licenseInfo ?? [];
+
+    const result = await this.authService.signUp(signUpDto, { businessLogo, licenseInfo });
 
     return {
       success: true,
@@ -71,6 +107,46 @@ export class AuthController {
       success: true,
       message: "Token Refreshed Success",
       data: result
+    }
+
+  }
+
+
+  @UseGuards(AuthGuard("jwt"))
+  @Post("getMe")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Get user own profile"
+  })
+  async getMe(@Req() req: any) {
+    const userId = req.user.userId;
+
+    const result = await this.authService.getMe(userId);
+
+    return {
+      success: true,
+      message: "User Profile Retrived Successfully",
+      data: result
+    }
+
+  }
+
+
+  @UseGuards(AuthGuard("jwt"))
+  @Post("activeStripeAccount")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Active elevator Stripe Account"
+  })
+  async activeElevatorStripeAccount(@Req() req: any) {
+    const userId = req.user.userId;
+
+    const result = await this.authService.stripeElevatorAccountActive(userId);
+
+    return {
+      url: result
     }
 
   }

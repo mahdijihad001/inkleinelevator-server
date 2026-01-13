@@ -38,15 +38,15 @@ export class SignUpDto {
     @IsString()
     companyName?: string;
 
-    @ApiPropertyOptional({ example: 'Trade License #12345' })
-    @IsOptional()
-    @IsString()
-    licenseInfo?: string;
+    // @ApiPropertyOptional({ example: 'https://logo.url' })
+    // @IsOptional()
+    // @IsString()
+    // licenseInfo?: string;
 
-    @ApiPropertyOptional({ example: 'https://logo.url' })
-    @IsOptional()
-    @IsString()
-    businessLogo?: string;
+    // @ApiPropertyOptional({ example: 'https://logo.url' })
+    // @IsOptional()
+    // @IsString()
+    // businessLogo?: string;
 };
 
 

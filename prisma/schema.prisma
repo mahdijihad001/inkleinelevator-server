@@ -30,7 +30,8 @@ model User {
   website            String?
   businessAddress    String?
   refreshToken       String?
-  isNotification     Boolean @default(false)
+  stripeAccountId    String?
+  isNotification     Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -53,28 +54,27 @@ model Job {
   user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   // Job details
-  jobTitle                             String
-  jobType                              String
-  projectDescription                   String
-  technicalDescriptionAndCertification String
-  elevatorType                         String
-  numberOfElevator                     Int              @default(0)
-  capasity                             String
-  speed                                String
-  address                              String
-  streetAddress                        String
-  city                                 String
-  zipCode                              String
-  photo                                String
-  documents                            String
-  estimitedBudget                      String
-  jobStatus                            JobStatus        @default(OPEN)
-  paymentStatus                        JobPaymentStatus @default(UNPAID)
+  jobTitle                            String
+  jobType                             String
+  projectDescription                  String
+  technicalRequermentAndCertification String[]
+  elevatorType                        String
+  numberOfElevator                    Int              @default(0)
+  capasity                            String
+  speed                               String
+  address                             String
+  streetAddress                       String
+  city                                String
+  zipCode                             String
+  photo                               String[]
+  documents                           String[]
+  estimitedBudget                     String
+  jobStatus                           JobStatus        @default(OPEN)
+  paymentStatus                       JobPaymentStatus @default(UNPAID)
+  paymentId                           String?          @unique
   // Relations
-  bids                                 Bid[]
-  payment                              Payment?         @relation(fields: [paymentId], references: [paymentId])
-
-  paymentId String? @unique
+  bids                                Bid[]
+  payment                             Payment?         @relation(fields: [paymentId], references: [paymentId])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

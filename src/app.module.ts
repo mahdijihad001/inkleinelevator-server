@@ -5,12 +5,16 @@ import { ConfigModule } from "@nestjs/config"
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { JobModule } from './job/job.module';
+import { CloudinaryProvider } from './config/CloudinaryProvider';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [PrismaModule, ConfigModule.forRoot({
     isGlobal: true
-  }), AuthModule, JobModule],
+  }), AuthModule, JobModule, CloudinaryModule, StripeModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, CloudinaryProvider],
+  exports: ["CLOUDINARY"]
 })
 export class AppModule { }
