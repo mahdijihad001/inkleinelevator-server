@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
+  Get,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -98,7 +99,7 @@ export class JobController {
 
   @UseGuards(AuthGuard("jwt"))
   @ApiBearerAuth()
-  @Post("get-all-job")
+  @Get("get-all-job")
   @ApiOperation({
     summary: "Get All Job"
   })
@@ -114,7 +115,23 @@ export class JobController {
 
   }
 
+  @UseGuards(AuthGuard("jwt"))
+  @ApiBearerAuth()
+  @Get("get-myJob")
+  @ApiOperation({
+    summary: "Get My All Job"
+  })
+  async getMyAllJob(@Req() req: any) {
+    const userId = req.user.userId;
 
-  
+    const result = await this.jobService.getMyAllJOb(userId);
+
+    return {
+      success: true,
+      message: "My all job retrived successfully!",
+      data: result
+    }
+
+  }
 
 }

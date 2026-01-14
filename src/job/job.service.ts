@@ -68,6 +68,17 @@ export class JobService {
 
         return result;
 
+    };
+
+
+    async getMyAllJOb(userId: string) {
+        const result = await this.prisma.job.findMany({
+            where: {
+                userId: userId
+            }
+        });
+
+        return result
     }
 
 }
