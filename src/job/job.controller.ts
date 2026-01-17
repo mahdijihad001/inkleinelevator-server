@@ -11,6 +11,7 @@ import {
   Query,
   Param,
   Patch,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -18,18 +19,19 @@ import {
   ApiConsumes,
   ApiBody,
   ApiOperation,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JobService } from './job.service';
 import { CreateJobDto } from './dto/create.job.dto';
+import { AdminGuard } from 'src/guard/admin.guard';
 
 @Controller('job')
 export class JobController {
   constructor(private readonly jobService: JobService) { }
-
+  @Post('createJob')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
-  @Post('createJob')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -99,10 +101,9 @@ export class JobController {
     return this.jobService.createJob(userId, dto, photos, documents);
   };
 
-
+  @Get("get-all-job")
   @UseGuards(AuthGuard("jwt"))
   @ApiBearerAuth()
-  @Get("get-all-job")
   @ApiOperation({
     summary: "get all job"
   })
@@ -118,9 +119,9 @@ export class JobController {
 
   }
 
+  @Get("get-myJob")
   @UseGuards(AuthGuard("jwt"))
   @ApiBearerAuth()
-  @Get("get-myJob")
   @ApiOperation({
     summary: "Get my all job"
   })
@@ -137,9 +138,9 @@ export class JobController {
 
   }
 
+  @Get("get-single-job/:jobId")
   @UseGuards(AuthGuard("jwt"))
   @ApiBearerAuth()
-  @Get("get-single-job/:jobId")
   @ApiOperation({
     summary: "get Single Job"
   })
@@ -153,10 +154,9 @@ export class JobController {
     }
   };
 
-
+  @Patch("jobs/:jobId/ready-for-review")
   @UseGuards(AuthGuard("jwt"))
   @ApiBearerAuth()
-  @Patch("jobs/:jobId/ready-for-review")
   @ApiOperation({
     summary: "Mark a job as ready for review (PENDING_REVIEW)"
   })
@@ -175,10 +175,9 @@ export class JobController {
     };
   }
 
-  
+  @Patch("jobs/:jobId/complete")
   @UseGuards(AuthGuard("jwt"))
   @ApiBearerAuth()
-  @Patch("jobs/:jobId/complete")
   @ApiOperation({
     summary: "Mark job as completed (Only job owner can complete)"
   })
@@ -198,6 +197,52 @@ export class JobController {
       message: "Job completed successfully",
       data: result
     };
+  }
+
+
+  @Get("get-all-job-by-admin")
+  @UseGuards(AuthGuard("jwt"), AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Get all jobs (Admin)"
+  })
+  @ApiQuery({
+    name: 'searchTerm',
+    required: false,
+    type: String,
+    description: 'Search term to filter jobs by title or description'
+  })
+  async getAllJobByAdmin(
+    @Query('page', ParseIntPipe) page: number = 1,
+    @Query('limit', ParseIntPipe) limit: number = 10,
+    @Query('searchTerm') searchTerm?: string
+  ) {
+
+    const result = await this.jobService.jobManagementByAdmin(page, limit, searchTerm);
+
+    return {
+      success: true,
+      message: "All jobs retrived successfully",
+      data: result
+    }
+
+  }
+
+  @Get("get-all-bidded-company-in-single-job")
+  @UseGuards(AuthGuard("jwt"), AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Get all jobs (Admin)"
+  })
+  async getAllBiddessCompanyByJobId(@Query("jobId") jobId: string) {
+    const result = await this.jobService.getAllBiddessCompanyByJobId(jobId);
+
+    return {
+      success: true,
+      message: "All Bidded Company Retrived Successfully",
+      data: result
+    }
+
   }
 
 }

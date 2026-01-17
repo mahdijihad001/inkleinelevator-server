@@ -1,36 +1,35 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+
+
 
 export class createBid {
-    @ApiProperty({
-        example: "1234567890"
-    })
+    @ApiProperty({ example: "1234567890" })
     @IsNotEmpty()
     @IsString()
     jobId: string;
 
-    @ApiProperty({
-        example: "$2000-$3000"
-    })
+    @ApiProperty({ example: 2000 })
     @IsNotEmpty()
-    @IsString()
-    bidAmount: string;
+    @IsNumber()
+    bidAmount: number;
 
-    @ApiProperty({
-        example: "01-01-2027"
-    })
+    @ApiProperty({ example: "01-01-2027" })
     @IsNotEmpty()
     @IsString()
     completionTimeline: string;
 
+    @ApiProperty({ example: 4, description: "Number of weeks to complete" })
+    @IsNotEmpty()
+    @IsNumber()
+    timeline: number;
 
-    @ApiProperty({
-        example: "At this stage, we are unable to fully configure and test the billing system because we do not yet have proper access to your Apple App Store Connect and Google Play Console accounts. Once these accesses are provided, we will be able to correctly set up the payment flow, fix the issue where the system directly shows “payment failed,” and add a temporary paywall bypass for proper testing. After everything is completed and verified, we will guide you step by step through the final setup and testing process. I would also like to confirm that the system is using the free DeepSeek model via OpenRouter, as previously discussed. We are ready to proceed immediately once the remaining access requirements are fulfilled and look forward to completing the project smoothly."
-    })
+    @ApiProperty({ example: "Short proposal description" })
     @IsNotEmpty()
     @IsString()
-    brefProposal: string
+    brefProposal: string;
 }
+
 
 
 export class acceptJobBid {

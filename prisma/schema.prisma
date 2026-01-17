@@ -13,12 +13,12 @@ datasource db {
 }
 
 model User {
-  userId             String  @id @default(uuid())
+  userId             String                @id @default(uuid())
   name               String
-  email              String  @unique
-  phone              String  @unique
+  email              String                @unique
+  phone              String                @unique
   password           String
-  role               Role    @default(USER)
+  role               Role                  @default(USER)
   companyName        String?
   businessLogo       String?
   licenseInfo        String?
@@ -31,19 +31,22 @@ model User {
   businessAddress    String?
   refreshToken       String?
   stripeAccountId    String?
-  isNotification     Boolean @default(true)
+  isNotification     Boolean               @default(true)
+  verifidStatus      elevatorVerifidStatus @default(REQUEST)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Rls
-
+  // Relations
   jobs             Job[]
   bids             Bid[]
   payments         Payment[]
   sentMessages     Message[]      @relation("SentMessages")
   receivedMessages Message[]      @relation("ReceivedMessages")
   nitifications    Nitification[]
+
+  reviewsGiven    Review[] @relation("ReviewsGiven") // Reviews this user gave
+  reviewsReceived Review[] @relation("ReviewsReceived") // Reviews this user received
 
   @@map("users")
 }
@@ -75,6 +78,8 @@ model Job {
   bids                                Bid[]
   payment                             Payment[]
 
+  reviews Review[] @relation("JobReviews")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -86,8 +91,9 @@ model Bid {
   jobId  String?
   job    Job?    @relation(fields: [jobId], references: [jobId])
 
-  bidAmount          String
-  completionTimeline String
+  bidAmount          Int       @default(0)
+  timeline           Int       @default(0)
+  completionTimeline String?
   brefProposal       String
   status             BidStatus @default(PENDING_REVIEW)
 }
@@ -133,6 +139,26 @@ model Nitification {
   updatedAt      DateTime @updatedAt
 }
 
+model Review {
+  reviewId String @id @default(uuid())
+
+  reviewerId String
+  revieweeId String
+  jobId      String
+
+  reviewer User @relation("ReviewsGiven", fields: [reviewerId], references: [userId], onDelete: Cascade)
+  reviewee User @relation("ReviewsReceived", fields: [revieweeId], references: [userId], onDelete: Cascade)
+  job      Job  @relation("JobReviews", fields: [jobId], references: [jobId], onDelete: Cascade)
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reviews")
+}
+
 enum Role {
   USER
   ELEVATOR
@@ -172,6 +198,13 @@ enum BidStatus {
 enum PaymentReleaseStatus {
   REVIEW
   RELEASE
+}
+
+enum elevatorVerifidStatus {
+  VERIFID
+  SUSPEND
+  DECLINT
+  REQUEST
 }
 
 enum paymentStatus {

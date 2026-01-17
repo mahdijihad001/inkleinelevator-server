@@ -1,6 +1,8 @@
 import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JobBidProposalInterface } from './type/bid.type';
+import { Prisma } from '@prisma/client';
+import { BidStatus } from 'generated/prisma/enums';
 
 @Injectable()
 export class BidService {
@@ -17,8 +19,7 @@ export class BidService {
             }
         });
 
-
-        if (checkBidRequest) throw new HttpException("This job already has accepted an bid. You Cnnot place another bid", 400);
+        if (checkBidRequest) throw new HttpException("This job already has an accepted bid. You cannot place another bid", 400);
 
         const findBid = await this.prisma.bid.findFirst({
             where: {
@@ -27,19 +28,20 @@ export class BidService {
             }
         });
 
-        if (findBid) throw new HttpException("Already Bid This Job", 400);
-
-
-
+        if (findBid) throw new HttpException("Already bid for this job", 400);
 
         const bid = await this.prisma.bid.create({
             data: {
-                ...data
+                userId: data.userId,
+                jobId: data.jobId,
+                bidAmount: data.bidAmount,
+                timeline: data.timeline,
+                completionTimeline: data.completionTimeline,
+                brefProposal: data.brefProposal,
             }
         });
 
         return bid;
-
     }
 
     async deleteBid(userId: string, bidId: string) {
@@ -76,11 +78,119 @@ export class BidService {
             data: {
                 jobStatus: "INPROGRESS"
             }
-        });       
+        });
 
         return null;
     }
 
-    
+    async getAllBidByAdmin(page: number = 1, limit: number = 10, searchTerm?: string) {
+        const skip = (page - 1) * limit;
 
+        const validBidStatuses = Object.values(BidStatus);
+        const searchNumber = Number(searchTerm);
+        const searchCondition = searchTerm && searchTerm.trim() !== ""
+            ? {
+                OR: [
+                    ...(isNaN(searchNumber) ? [] : [{ bidAmount: searchNumber }]), // Only filter bidAmount if searchTerm is a number
+                    { brefProposal: { contains: searchTerm, mode: 'insensitive' as Prisma.QueryMode } },
+                    ...(validBidStatuses.includes(searchTerm as any) ? [{ status: searchTerm as BidStatus }] : []),
+                    {
+                        user: {
+                            OR: [
+                                { name: { contains: searchTerm, mode: 'insensitive' as Prisma.QueryMode } },
+                                { email: { contains: searchTerm, mode: 'insensitive' as Prisma.QueryMode } },
+                                { companyName: { contains: searchTerm, mode: 'insensitive' as Prisma.QueryMode } },
+                            ],
+                        },
+                    },
+                    {
+                        job: {
+                            OR: [
+                                { jobTitle: { contains: searchTerm, mode: 'insensitive' as Prisma.QueryMode } },
+                                { projectDescription: { contains: searchTerm, mode: 'insensitive' as Prisma.QueryMode } },
+                            ],
+                        },
+                    },
+                ],
+            }
+            : {};
+
+
+        const total = await this.prisma.bid.count({ where: searchCondition });
+
+
+        const getAllBids = await this.prisma.bid.findMany({
+            skip,
+            take: limit,
+            where: searchCondition,
+            include: {
+                user: {
+                    select: {
+                        userId: true,
+                        name: true,
+                        companyName: true,
+                        email: true,
+                        companyDescription: true,
+                        _count: {
+                            select: {
+                                reviewsReceived: true
+                            }
+                        },
+
+                    }
+                },
+                job: true,
+            }
+        });
+
+        const bidsWithAvgReview = await Promise.all(getAllBids.map(async (bid) => {
+            const avgReview = await this.prisma.review.aggregate({
+                where: { revieweeId: bid.userId },
+                _avg: { rating: true },
+            });
+
+            return {
+                ...bid,
+                avgRating: avgReview._avg.rating ?? 0
+            };
+        }));
+
+        const totalPage = Math.ceil(total / limit);
+
+        return {
+            meta: { page, limit, total, totalPage },
+            data: bidsWithAvgReview,
+        };
+    };
+
+
+    async getSingleBidWithDetails(bidId: string) {
+        const result = await this.prisma.bid.findFirst({
+            where: {
+                bidId: bidId
+            },
+            include: {
+                job: {
+                    include: {
+                        user: true
+                    }
+                },
+                user: {
+                    select: {
+                        userId: true,
+                        companyName: true,
+                        email: true,
+                        name: true,
+                        licenseNo: true,
+                        licenseInfo: true
+                    }
+                }
+            }
+        });
+
+        if (!result) throw new HttpException("Bid Not Found", 404);
+
+        return result;
+
+    };
 }
