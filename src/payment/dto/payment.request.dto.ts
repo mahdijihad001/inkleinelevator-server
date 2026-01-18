@@ -17,4 +17,11 @@ export class createPaymentDto {
     @IsNotEmpty()
     @IsString()
     jobId: string
+
+    @ApiProperty({
+        example: "12121212124121"
+    })
+    @IsNotEmpty()
+    @IsString()
+    bidId: string
 }

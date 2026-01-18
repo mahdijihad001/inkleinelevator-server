@@ -36,7 +36,8 @@ export class PaymentController {
     const result = await this.paymentService.paymentSingleJob(
       dto.amount,
       req.user.userId,
-      dto.jobId
+      dto.jobId,
+      dto.bidId
     );
 
     return {

@@ -4,13 +4,15 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
 import { ValidationPipe } from '@nestjs/common';
 import { urlencoded } from 'express';
 import * as bodyParser from 'body-parser';
-
+import { IoAdapter } from '@nestjs/platform-socket.io';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(urlencoded({ limit: '50mb', extended: true }));
 
   app.useGlobalPipes(new ValidationPipe());
+
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   // Enable CORS
   app.enableCors({
@@ -71,7 +73,7 @@ async function bootstrap() {
     ║                                                       ║
     ║   📡 Server: http://localhost:${port}                ║
     ║   📚 Swagger: http://localhost:${port}/docs          ║
-    ║   🔌 WebSocket: ws://localhost:${port}/notifications  ║
+    ║   🔌 WebSocket: ws://localhost:${port}/socket/message  ║
     ║                                                       ║
     ╚═══════════════════════════════════════════════════════╝
   `);

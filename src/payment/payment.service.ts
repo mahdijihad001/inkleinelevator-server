@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import Stripe from 'stripe';
 
@@ -10,37 +10,142 @@ export class PaymentService {
         @Inject('STRIPE') private stripe: Stripe
     ) { }
 
-    async paymentSingleJob(amount: number, userId: string, jobId: string) {
+    // async paymentSingleJob(amount: number, userId: string, jobId: string, bidId: string) {
+
+    //     const bid = await this.prisma.bid.findUnique({
+    //         where: {
+    //             bidId: bidId
+    //         }
+    //     });
+
+
+    //     if (!bid) throw new NotFoundException("Bid Not Found");
+
+    //     const user = await this.prisma.user.findUnique({
+    //         where: {
+    //             userId: bid.userId
+    //         }
+    //     });
+
+    //     if (!user) throw new NotFoundException("Bidded User Not Valid");
+
+    //     console.log(user.stripeAccountId);
+
+    //     const paymentIntent = await this.stripe.paymentIntents.create({
+    //         amount: bid?.bidAmount * 100,
+    //         currency: "usd",
+    //         capture_method: "automatic",
+    //         automatic_payment_methods: {
+    //             enabled: true
+    //         },
+    //         metadata: {
+    //             userId: userId,
+    //             jobId: jobId,
+    //             bidId: bidId
+    //         }
+    //     });
+
+
+    //     const payment = await this.prisma.payment.create({
+    //         data: {
+    //             amount: amount,
+    //             userId: userId,
+    //             stripePaymentId: paymentIntent.id,
+    //             jobId: jobId
+    //         }
+    //     });
+
+    //     return {
+    //         payment,
+    //         clientSecret: paymentIntent.client_secret
+    //     }
+    // }
+
+
+    async paymentSingleJob(amount: number, userId: string, jobId: string, bidId: string) {
+        const bid = await this.prisma.bid.findUnique({ where: { bidId: bidId } });
+        if (!bid) throw new NotFoundException("Bid Not Found");
 
         const paymentIntent = await this.stripe.paymentIntents.create({
             amount: amount * 100,
             currency: "usd",
-            capture_method: "automatic",
-            automatic_payment_methods: {
-                enabled: true
-            },
-            metadata: {
-                userId: userId,
-                jobId: jobId
-            }
+            transfer_group: `JOB_${jobId}`,
+            metadata: { userId, jobId, bidId }
         });
-
 
         const payment = await this.prisma.payment.create({
             data: {
                 amount: amount,
                 userId: userId,
                 stripePaymentId: paymentIntent.id,
-                jobId: jobId
+                jobId: jobId,
+                bidId: bidId,
+                status: "PAID"
             }
         });
 
         return {
             payment,
             clientSecret: paymentIntent.client_secret
-        }
+        };
     }
 
+
+    async releasePaymentToConstuctor(paymentId: string) {
+        const payment = await this.prisma.payment.findUnique({
+            where: { paymentId: paymentId },
+        });
+
+        if (!payment) throw new NotFoundException("Payment record not found");
+
+        const findbid = await this.prisma.bid.findUnique({
+            where: { bidId: payment.bidId }
+        });
+
+        if (!findbid) throw new NotFoundException("Bid record not found");
+
+        const user = await this.prisma.user.findUnique({
+            where: { userId: findbid.userId }
+        });
+
+        if (!user) throw new NotFoundException("User Not Found");
+
+        const vendorAmount = payment.amount * 0.90;
+        const vendorAmountInCents = Math.round(vendorAmount * 100);
+
+
+        await this.stripe.transfers.create({
+            amount: vendorAmountInCents,
+            currency: "usd",
+            destination: user?.stripeAccountId as string,
+            transfer_group: `JOB_${payment.jobId}`,
+            metadata: {
+                dbPaymentId: paymentId
+            }
+        });
+
+        return {
+            message: "Payment transfer initiated. Waiting for confirmation."
+        };
+    }
+
+
+    async refundPayment(paymentId: string) {
+        const payment = await this.prisma.payment.findUnique({
+            where: { paymentId: paymentId },
+        });
+
+        if (!payment) throw new NotFoundException("Payment record not found");
+
+        await this.stripe.refunds.create({
+            payment_intent: payment.stripePaymentId,
+            metadata: {
+                dbPaymentId: paymentId
+            }
+        });
+
+        return { message: "Refund initiated. Processing..." };
+    }
 
     async getALlReviwPayment(page: number = 1, limit: number = 10) {
 
@@ -86,7 +191,7 @@ export class PaymentService {
         const total = await this.prisma.payment.count({
             where: {
                 status: "PAID",
-                releaseStatus: "RELEASE"
+                releaseStatus: "RELESE"
             }
         });
 
@@ -95,7 +200,7 @@ export class PaymentService {
         const result = await this.prisma.payment.findMany({
             where: {
                 status: "PAID",
-                releaseStatus: "RELEASE"
+                releaseStatus: "RELESE"
             },
             skip: skip,
             take: limit,
@@ -142,6 +247,39 @@ export class PaymentService {
                     await this.handlePaymentCanceled(event.data.object as Stripe.PaymentIntent);
                     break;
 
+                case 'transfer.created': {
+                    const transfer = event.data.object;
+
+                    const paymentId = transfer.metadata.dbPaymentId;
+
+                    if (paymentId) {
+                        await this.prisma.payment.update({
+                            where: { paymentId: paymentId },
+                            data: { releaseStatus: "RELESE" }
+                        });
+                        console.log(`Payment ID ${paymentId} marked as RELEASE.`);
+                    }
+                    break;
+                }
+
+
+                case 'charge.refunded': {
+                    const charge = event.data.object;
+
+                    const paymentId = charge.metadata.dbPaymentId;
+
+                    if (paymentId) {
+                        await this.prisma.payment.update({
+                            where: { paymentId: paymentId },
+                            data: { releaseStatus: "REFUND" }
+                        });
+                        console.log(`Payment ID ${paymentId} updated to REFUNDED status.`);
+                    }
+                    break;
+                }
+
+
+
                 case 'payment_intent.created':
                     console.log('🆕 Payment intent created (no action needed)');
                     break;
@@ -182,6 +320,16 @@ export class PaymentService {
                 status: 'PAID',
             },
         });
+
+        await this.prisma.bid.update({
+            where: {
+                bidId: paymentIntent.metadata.bidId
+            },
+            data: {
+                status: "ACCEPTED"
+            }
+        })
+
 
         await this.prisma.job.update({
             where: {

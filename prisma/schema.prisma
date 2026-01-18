@@ -122,6 +122,7 @@ model Payment {
   status          paymentStatus        @default(UNPAID)
   stripePaymentId String
   jobId           String
+  bidId           String
   user            User                 @relation(fields: [userId], references: [userId], onDelete: Cascade)
   job             Job                  @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
   createdAt       DateTime             @default(now())
@@ -197,7 +198,8 @@ enum BidStatus {
 
 enum PaymentReleaseStatus {
   REVIEW
-  RELEASE
+  RELESE
+  REFUND
 }
 
 enum elevatorVerifidStatus {
