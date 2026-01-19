@@ -1,6 +1,6 @@
-import { BadRequestException, HttpException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateJobDto } from './dto/create.job.dto';
+import { CreateJobDto, updateJobDto } from './dto/create.job.dto';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { Prisma } from '@prisma/client';
 
@@ -10,6 +10,114 @@ export class JobService {
         private prisma: PrismaService,
         private cloudinaryService: CloudinaryService,
     ) { }
+
+
+    private cleanUpdateData<T extends Record<string, any>>(
+        data: T,
+    ): Partial<T> {
+        const cleaned: Partial<T> = {};
+
+        for (const key in data) {
+            const value = data[key];
+
+            if (
+                value !== undefined &&
+                value !== null &&
+                !(typeof value === 'string' && value.trim() === '') &&
+                !(Array.isArray(value) && value.length === 0)
+            ) {
+                cleaned[key] = value;
+            }
+        }
+
+        return cleaned;
+    }
+
+    async updateJob(
+        userId: string,
+        jobId: string,
+        dto: updateJobDto,
+        photos: Express.Multer.File[],
+        documents: Express.Multer.File[],
+    ) {
+        // Find the job
+        const job = await this.prisma.job.findUnique({
+            where: { jobId },
+        });
+
+        if (!job) {
+            throw new NotFoundException('Job not found');
+        }
+
+        if (job.userId !== userId) {
+            throw new ForbiddenException('You are not allowed to update this job');
+        }
+
+        // Prepare update data with proper type conversions
+        const updateData = this.cleanUpdateData({
+            jobTitle: dto.jobTitle,
+            jobType: dto.jobType,
+            projectDescription: dto.projectDescription,
+            technicalRequermentAndCertification: dto.technicalRequirementsAndCertifications,
+            elevatorType: dto.elevatorType,
+            numberOfElevator: dto.numberOfElevator, // Already converted to number in controller
+            capasity: dto.capacity,
+            speed: dto.speed,
+            address: dto.address,
+            streetAddress: dto.streetAddress,
+            city: dto.city,
+            zipCode: dto.zipCode,
+            estimitedBudget: dto.estimatedBudget,
+        });
+
+        // Handle photo uploads
+        let photoUrls = job.photo;
+        if (photos && photos.length > 0) {
+            photoUrls = [];
+            for (const photo of photos) {
+                try {
+                    const upload = await this.cloudinaryService.uploadFile(
+                        photo,
+                        'job/photos',
+                    );
+                    photoUrls.push(upload.secure_url);
+                } catch (error) {
+                    throw new BadRequestException(`Failed to upload photo: ${error.message}`);
+                }
+            }
+        }
+
+        // Handle document uploads
+        let documentUrls = job.documents;
+        if (documents && documents.length > 0) {
+            documentUrls = [];
+            for (const doc of documents) {
+                try {
+                    const upload = await this.cloudinaryService.uploadFile(
+                        doc,
+                        'job/documents',
+                    );
+                    documentUrls.push(upload.secure_url);
+                } catch (error) {
+                    throw new BadRequestException(`Failed to upload document: ${error.message}`);
+                }
+            }
+        }
+
+        // Update the job
+        try {
+            return await this.prisma.job.update({
+                where: { jobId },
+                data: {
+                    ...updateData,
+                    photo: photoUrls,
+                    documents: documentUrls,
+                },
+            });
+        } catch (error) {
+            throw new BadRequestException(`Failed to update job: ${error.message}`);
+        }
+    }
 
     async createJob(userId: string, dto: CreateJobDto, photos: Express.Multer.File[], documents: Express.Multer.File[]) {
         const photoUrls: string[] = [];
@@ -237,7 +345,7 @@ export class JobService {
             },
             data: result,
         };
-    }
+    };
 
     async getAllBiddessCompanyByJobId(jobId: string) {
         const bids = await this.prisma.bid.findMany({
@@ -295,6 +403,20 @@ export class JobService {
         });
 
         return result;
+    };
+
+    async deleteJob(jobId: string, userId: string) {
+        const deleteJob = await this.prisma.job.delete({
+            where: {
+                userId: userId,
+                jobId: jobId
+            }
+        });
+
+        if(!deleteJob) throw new NotFoundException("Job Not Found For Delete");
+
+        return deleteJob
+
     }
 
 }

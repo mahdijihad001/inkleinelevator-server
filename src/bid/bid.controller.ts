@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { BidService } from './bid.service';
 import { acceptJobBid, createBid } from './dto/bid.request.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -146,5 +146,7 @@ export class BidController {
 
   }
 
+
+  
 
 }

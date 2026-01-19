@@ -1,7 +1,7 @@
 import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JobBidProposalInterface } from './type/bid.type';
-import { Prisma , BidStatus } from '@prisma/client';
+import { Prisma, BidStatus } from '@prisma/client';
 
 @Injectable()
 export class BidService {
@@ -259,5 +259,16 @@ export class BidService {
             data
         };
     };
+
+    async bidDelete(bidId: string, userId: string) {
+        const result = await this.prisma.bid.delete({
+            where: {
+                bidId: bidId,
+                userId: userId
+            }
+        });
+        if (!result) throw new NotFoundException("Bid not found for delete");
+        return result
+    }
 
 }
