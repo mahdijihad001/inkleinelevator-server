@@ -317,6 +317,167 @@ export class UserService {
             totalRevenew: totalPayment
         }
 
+    };
+
+
+    async getAllRecentActivityForAdmin() {
+        const result = await this.prisma.recentActivity.findMany({
+            take: 7,
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        return result;
+    };
+
+
+    async getAllAdminDashboardAnalytics() {
+        const totalUser = await this.prisma.user.count();
+
+        const totalActiveJobs = await this.prisma.job.count({
+            where: {
+                jobStatus: {
+                    notIn: ["DECLINED", "COMPLITE"],
+                },
+            },
+        });
+
+        const totalBid = await this.prisma.bid.count();
+
+        const paymentSum = await this.prisma.payment.aggregate({
+            _sum: {
+                amount: true,
+            },
+            where: {
+                status: "PAID",
+                releaseStatus: "RELESE",
+            },
+        });
+
+        const totalPaymentAmount = paymentSum._sum.amount || 0;
+        const totalPlatformRevenue = totalPaymentAmount * 0.1;
+
+
+        const totalJob = await this.prisma.job.count();
+
+        const totalOpenJob = await this.prisma.job.count({
+            where: {
+                jobStatus: "OPEN"
+            }
+        });
+
+        const totalpendingBid = await this.prisma.bid.count({
+            where: {
+                status: "PENDING_REVIEW"
+            }
+        });
+
+        const avgBidAmount = await this.prisma.bid.aggregate({
+            _avg: {
+                bidAmount: true,
+            },
+            where: {
+                status: "ACCEPTED",
+            },
+        });
+
+        const acceptedBidAvg = avgBidAmount._avg.bidAmount || 0;
+
+
+        const totalIncrowPayment = await this.prisma.payment.aggregate({
+            where: {
+                status: 'PAID',
+                releaseStatus: {
+                    not: 'REVIEW',
+                },
+            },
+            _sum: {
+                amount: true,
+            },
+        });
+
+        const totalIncrowPaymentAmount = totalIncrowPayment._sum.amount || 0;
+
+        const totalPlatformRevenew = totalIncrowPaymentAmount * 0.10
+
+        const last24Hours = new Date();
+        last24Hours.setHours(last24Hours.getHours() - 24);
+
+        const releasedPayments = await this.prisma.payment.aggregate({
+            where: {
+                status: 'PAID',
+                releaseStatus: 'RELESE',
+            },
+            _sum: {
+                amount: true,
+            },
+        });
+
+        const totalReleasedAmount = releasedPayments._sum.amount || 0;
+
+        // 🔥 90% calculation
+        const toBeRelesed = totalReleasedAmount * 0.90;
+
+
+        const releasedLast24h = await this.prisma.payment.aggregate({
+            where: {
+                status: 'PAID',
+                releaseStatus: 'RELESE',
+                createdAt: {
+                    gte: last24Hours,
+                },
+            },
+            _sum: {
+                amount: true,
+            },
+        });
+
+        const totalReleased24h = releasedLast24h._sum.amount || 0;
+
+        // 🔥 90% calculation
+        const payout90Percent = totalReleased24h * 0.9;
+
+        // 🔥 10% platform fee
+        const platformFee10Percent = totalReleased24h * 0.1;
+
+
+        return {
+
+            dashboard: {
+                totalUser,
+                totalActiveJobs,
+                totalBid,
+                totalPlatformRevenue,
+            },
+
+            jobsManagements: {
+                totalValue: totalPaymentAmount,
+                totalJob,
+                totalOpenJob,
+                totalBid
+            },
+
+
+            bidsManagements: {
+                totalBid,
+                totalpendingBid,
+                platformFee: totalPlatformRevenue,
+                avgBidAmount: acceptedBidAvg,
+            },
+
+            payments: {
+                inEscrow: totalIncrowPaymentAmount,
+                totalPlatformRevenew,
+                toBeRelesed,
+                relesepayment: {
+                    constructorGet: payout90Percent,
+                    platformGet: platformFee10Percent,
+                    totalRelesed: totalReleased24h
+                }
+            }
+
+        };
     }
 
 }

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class RecentActivityService {}
+export class RecentActivityService {
+    constructor(){}
+}

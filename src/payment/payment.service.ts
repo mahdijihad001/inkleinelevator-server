@@ -61,7 +61,6 @@ export class PaymentService {
     //     }
     // }
 
-
     async paymentSingleJob(amount: number, userId: string, jobId: string, bidId: string) {
         const bid = await this.prisma.bid.findUnique({ where: { bidId: bidId } });
         if (!bid) throw new NotFoundException("Bid Not Found");
@@ -113,7 +112,6 @@ export class PaymentService {
         const vendorAmount = payment.amount * 0.90;
         const vendorAmountInCents = Math.round(vendorAmount * 100);
 
-
         await this.stripe.transfers.create({
             amount: vendorAmountInCents,
             currency: "usd",
@@ -125,7 +123,7 @@ export class PaymentService {
         });
 
         return {
-            message: "Payment transfer initiated. Waiting for confirmation."
+            message: "Payment transfer initiated"
         };
     }
 

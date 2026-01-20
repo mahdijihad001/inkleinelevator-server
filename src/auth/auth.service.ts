@@ -179,7 +179,6 @@ export class AuthService {
             user: findUser,
             tokens
         }
-
     }
 
     async logOutUser(userId: string) {

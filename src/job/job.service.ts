@@ -15,7 +15,7 @@ interface GetAllJobOptions {
 
 interface GetMyJobOptions {
     search?: string;
-    jobStatus?: string;
+    jobType?: string;
     page?: number;
     limit?: number;
 }
@@ -228,13 +228,13 @@ export class JobService {
     }
 
     async getMyAllJob(userId: string, options: GetMyJobOptions = {}) {
-        const { search, jobStatus, page = 1, limit = 10 } = options;
+        const { search, jobType, page = 1, limit = 10 } = options;
 
         const where: any = { userId };
 
         // filter by jobStatus
-        if (jobStatus) {
-            where.jobStatus = jobStatus;
+        if (jobType) {
+            where.jobType = jobType;
         }
 
         // search filter: jobTitle / projectDescription

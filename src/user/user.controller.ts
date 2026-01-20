@@ -250,7 +250,7 @@ export class UserController {
 
 
   @Get('dashboardAnalytics')
-  @UseGuards(AuthGuard('jwt'), ElevatorGuard) 
+  @UseGuards(AuthGuard('jwt'), ElevatorGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Elevator Dashboard Analytics (Only for ELEVATOR role)' })
   @HttpCode(HttpStatus.OK)
@@ -265,5 +265,39 @@ export class UserController {
       data: result,
     };
   }
+
+  @Get("get-recent-activity-form-admin")
+  @UseGuards(AuthGuard("jwt"), AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "All Recent Activity Only Can Access Admin"
+  })
+  @HttpCode(HttpStatus.OK)
+  async getAllRecentActivityOnlyCanAdmin() {
+    const result = await this.userService.getAllRecentActivityForAdmin();
+
+    return {
+      success: true,
+      data: result
+    }
+  };
+
+  @Get("get-all-admin-analytics")
+  @UseGuards(AuthGuard("jwt"), AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "All Admin Analytics Only For Admin"
+  })
+  @HttpCode(HttpStatus.OK)
+  async getAllAdminAnalytics() {
+    const result = await this.userService.getAllAdminDashboardAnalytics();
+
+    return {
+      success: true,
+      data: result
+    }
+
+  }
+
 
 }

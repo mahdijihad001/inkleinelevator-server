@@ -273,14 +273,14 @@ export class JobController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get my jobs with search, filter, and pagination" })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by job title or project description' })
-  @ApiQuery({ name: 'jobStatus', required: false, type: String, description: 'Filter by job status' })
+  @ApiQuery({ name: 'jobType', required: false, type: String, description: 'Filter by jobType' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of jobs per page' })
   @HttpCode(HttpStatus.OK)
   async getMyAllJob(
     @Req() req: any,
     @Query('search') search?: string,
-    @Query('jobStatus') jobStatus?: string,
+    @Query('jobType') jobType?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number
   ) {
@@ -288,7 +288,7 @@ export class JobController {
 
     const result = await this.jobService.getMyAllJob(userId, {
       search,
-      jobStatus,
+      jobType,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
     });
