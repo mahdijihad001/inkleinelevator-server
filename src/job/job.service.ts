@@ -341,7 +341,7 @@ export class JobService {
         if (!result) throw new NotFoundException("Job not found");
 
         if (result.userId !== userId) throw new NotAcceptableException("You are not permited for this route");
-        console.log("Curent Job Status", result.jobStatus);
+ 
         const allowedStatuses = ["INPROGRESS", "PENDING_REVIEW"];
 
         if (!allowedStatuses.includes(result.jobStatus)) {

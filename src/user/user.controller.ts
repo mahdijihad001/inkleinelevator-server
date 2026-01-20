@@ -44,7 +44,8 @@ export class UserController {
     const result = await this.userService.deleteUser(userId);
     return {
       success: true,
-      message: result
+      message: "User Deleted Successfully",
+      data: result
     }
   }
 
@@ -242,6 +243,7 @@ export class UserController {
 
     return {
       success: true,
+      message: "Recent Activity Retrived Successfully",
       data: result
 
     }
@@ -278,6 +280,7 @@ export class UserController {
 
     return {
       success: true,
+      message: "Recent Activity Retrived Successfully",
       data: result
     }
   };
@@ -294,6 +297,7 @@ export class UserController {
 
     return {
       success: true,
+      message: "Admin Analytics Retrived Successfully",
       data: result
     }
 

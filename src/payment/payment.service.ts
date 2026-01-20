@@ -261,21 +261,52 @@ export class PaymentService {
                 }
 
 
+                // case 'charge.refunded': {
+                //     const charge = event.data.object;
+
+                //     const paymentId = charge.metadata.dbPaymentId;
+
+                //     if (paymentId) {
+                //         await this.prisma.payment.update({
+                //             where: { paymentId: paymentId },
+                //             data: { releaseStatus: "REFUND" }
+                //         });
+                //         console.log(`Payment ID ${paymentId} updated to REFUNDED status.`);
+                //     }
+                //     break;
+                // }
+
                 case 'charge.refunded': {
-                    const charge = event.data.object;
+                    const charge = event.data.object as any;
 
-                    const paymentId = charge.metadata.dbPaymentId;
+                    const paymentId = charge.metadata?.dbPaymentId;
 
-                    if (paymentId) {
-                        await this.prisma.payment.update({
-                            where: { paymentId: paymentId },
-                            data: { releaseStatus: "REFUND" }
-                        });
-                        console.log(`Payment ID ${paymentId} updated to REFUNDED status.`);
-                    }
+                    if (!paymentId) break;
+
+                    const payment = await this.prisma.payment.findUnique({
+                        where: { paymentId },
+                        select: { jobId: true },
+                    });
+
+                    if (!payment) break;
+
+                    await this.prisma.payment.update({
+                        where: { paymentId },
+                        data: {
+                            releaseStatus: 'REFUND',
+                            status: 'REFUND',
+                        },
+                    });
+
+                    await this.prisma.job.update({
+                        where: { jobId: payment.jobId },
+                        data: {
+                            jobStatus: 'DECLINED',
+                        },
+                    });
+
                     break;
                 }
-
 
 
                 case 'payment_intent.created':

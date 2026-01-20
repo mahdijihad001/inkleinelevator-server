@@ -6,6 +6,7 @@ import {
   Headers,
   HttpCode,
   Inject,
+  Param,
   Post,
   Query,
   Req,
@@ -85,6 +86,30 @@ export class PaymentController {
       data: data
     }
 
+  }
+
+  @Post(':paymentId/release')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Release payment to contractor (90%) (Only Admin Can Do This)',
+  })
+  async releasePaymentToConstuctor(
+    @Param('paymentId') paymentId: string,
+  ) {
+    return await this.paymentService.releasePaymentToConstuctor(paymentId);
+  }
+
+  @Post(':paymentId/refund')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Refund payment via Stripe (Only Admin Can Do This)',
+  })
+  async refundPayment(
+    @Param('paymentId') paymentId: string,
+  ) {
+    return await this.paymentService.refundPayment(paymentId);
   }
 
   @Post('webhook')

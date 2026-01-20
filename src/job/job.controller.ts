@@ -102,7 +102,14 @@ export class JobController {
       }
     });
 
-    return this.jobService.createJob(userId, dto, photos, documents);
+    const result = this.jobService.createJob(userId, dto, photos, documents);
+
+    return {
+      success: true,
+      message: "Job Created Success",
+      data: result
+    }
+
   };
 
 
@@ -210,13 +217,20 @@ export class JobController {
       body.numberOfElevator = parsed;
     }
 
-    return this.jobService.updateJob(
+    const result = await this.jobService.updateJob(
       userId,
       jobId,
       body,
       photos,
       documents,
     );
+
+    return {
+      success: true,
+      message: "Job Updated Success",
+      data: result
+    }
+
   }
 
 

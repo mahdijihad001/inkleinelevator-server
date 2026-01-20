@@ -1,10 +1,10 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { BidService } from './bid.service';
 import { acceptJobBid, createBid } from './dto/bid.request.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { truncate } from 'node:fs/promises';
 import { AdminGuard } from 'src/guard/admin.guard';
+import { UserGuard } from 'src/guard/user.guard';
 
 @Controller('bid')
 export class BidController {
@@ -34,12 +34,11 @@ export class BidController {
     }
   }
 
-
-  @UseGuards(AuthGuard("jwt"))
   @Post("accept-bid")
+  @UseGuards(AuthGuard("jwt"), UserGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: "Accept Job Bid"
+    summary: "Accept Job Bid Only Can USER"
   })
   async acceptJobBid(@Body() dto: acceptJobBid, @Req() req: any) {
     const userId = req.user.userId;
@@ -49,6 +48,23 @@ export class BidController {
     return {
       success: true,
       message: "Job Bid Accepted Success",
+      data: result
+    }
+  }
+  @Post("declined-bid")
+  @UseGuards(AuthGuard("jwt"), UserGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Decline Job Bid Only Can USER"
+  })
+  async declineBid(@Body() dto: acceptJobBid, @Req() req: any) {
+    const userId = req.user.userId;
+
+    const result = await this.bidService.declinedBid(userId, dto.jobId, dto.bidId);
+
+    return {
+      success: true,
+      message: "Bid Declined",
       data: result
     }
   }
@@ -124,9 +140,9 @@ export class BidController {
     summary: "get my all bid only can (ELEVATOR)"
   })
   @ApiQuery({
-    name : "searchTerm",
-    required : false,
-    example : ""
+    name: "searchTerm",
+    required: false,
+    example: ""
   })
   async getMyAllBid(
     @Req() req: any,
@@ -147,6 +163,6 @@ export class BidController {
   }
 
 
-  
+
 
 }

@@ -271,4 +271,39 @@ export class BidService {
         return result
     }
 
+    async declinedBid(userId: string, jobId: string, bidId: string) {
+        const result = await this.prisma.bid.findFirst({
+            where: {
+                bidId: bidId
+            },
+            include: {
+                job: true
+            }
+        });
+
+        if (!result) throw new NotFoundException("Bid Not Found");
+
+        if (result?.job?.userId !== userId) throw new HttpException("Access Decliene, You are not permitted access this route", 403);
+
+        await this.prisma.bid.update({
+            where: {
+                bidId: bidId
+            },
+            data: {
+                status: "DECLINED"
+            }
+        });
+
+        await this.prisma.job.update({
+            where: {
+                jobId: jobId
+            },
+            data: {
+                jobStatus: "INPROGRESS"
+            }
+        });
+
+        return null;
+    }
+
 }
