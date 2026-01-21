@@ -396,6 +396,8 @@ export class JobService {
                 paymentStatus: job.paymentStatus,
                 createdAt: job.createdAt,
                 updatedAt: job.updatedAt,
+                documents: job.documents,
+                photo: job.photo,
                 numberOfElevator: job.numberOfElevator,
                 bids: job.bids.map(bid => ({
                     bidId: bid.bidId,
