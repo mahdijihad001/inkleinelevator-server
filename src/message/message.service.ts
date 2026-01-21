@@ -31,4 +31,33 @@ export class MessageService {
             orderBy: { createdAt: 'asc' },
         });
     }
+
+    async chatedUserList(myUserId: string) {
+        const messages = await this.prisma.message.findMany({
+            where: {
+                OR: [
+                    { senderId: myUserId },
+                    { receiverId: myUserId }
+                ],
+            },
+            select: {
+                senderId: true,
+                receiverId: true,
+                sender: true,
+                receiver: true,
+            },
+        });
+
+        const chatPartners = Array.from(
+            new Map(
+                messages.map((msg) => {
+                    const partner =
+                        msg.senderId === myUserId ? msg.receiver : msg.sender;
+                    return [partner.userId, partner];
+                })
+            ).values()
+        );
+
+        return chatPartners
+    }
 }

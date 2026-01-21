@@ -1,5 +1,5 @@
 // message.controller.ts
-import { Controller, Post, Body, Req, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Req, Get, Query, UseGuards, Param } from '@nestjs/common';
 import { MessageService } from './message.service';
 import { MessageGateway } from './message.gateway';
 import { AuthGuard } from '@nestjs/passport';
@@ -13,7 +13,7 @@ export class MessageController {
     private readonly messageGateway: MessageGateway,
   ) { }
 
-  
+
   @Post('send')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
@@ -45,4 +45,23 @@ export class MessageController {
     const messages = await this.messageService.getMessagesBetweenUsers(userId, withUserId);
     return messages;
   }
+
+  @Get('users/chatListUser')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Get all Chat List User"
+  })
+  async getChatedUsers(@Req() req: any) {
+    const userId = req.user.userId;
+    const result = this.messageService.chatedUserList(userId);
+
+    return {
+      success: true,
+      message: "All Chat Listed User Retridev Successfully",
+      data: result
+    }
+
+  }
+
 }
