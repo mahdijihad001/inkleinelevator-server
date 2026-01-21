@@ -73,8 +73,13 @@ export class ContentManagementProcessStepController {
 
   @Delete('step/:id')
   @ApiOperation({ summary: 'Delete a step' })
-  deleteStep(@Param('id') id: string) {
-    return this.contentManagementProcessStepService.deleteStep(id);
+  async deleteStep(@Param('id') id: string) {
+    const data = await this.contentManagementProcessStepService.deleteStep(id);
+    return {
+      success: true,
+      message: "Step Deleted Success",
+      data: data
+    }
   }
 
 }

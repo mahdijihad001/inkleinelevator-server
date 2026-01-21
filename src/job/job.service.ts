@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, HttpException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateJobDto, updateJobDto } from './dto/create.job.dto';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
@@ -247,7 +247,7 @@ export class JobService {
         };
     }
 
-    async getMyAllJob(userId: string, options: GetMyJobOptions = {}) {
+    async getMyAllJob1(userId: string, options: GetMyJobOptions = {}) {
         const { search, jobType, page = 1, limit = 10 } = options;
 
         const where: any = { userId };
@@ -290,6 +290,146 @@ export class JobService {
             jobs,
         };
     }
+
+
+    async getMyAllJob(userId: string, options: GetMyJobOptions = {}) {
+        const { search, jobType, page = 1, limit = 10 } = options;
+
+        // Where condition তৈরি করুন
+        const where: any = { userId };
+
+        // JobType filter
+        if (jobType) {
+            where.jobType = jobType;
+        }
+
+        // Search filter - সঠিক উপায়ে OR condition
+        if (search) {
+            where.OR = [
+                { jobTitle: { contains: search, mode: 'insensitive' } },
+                { projectDescription: { contains: search, mode: 'insensitive' } },
+            ];
+        }
+
+        const skip = (page - 1) * limit;
+
+        try {
+            // 1️⃣ Jobs + bids + bidder information fetch করুন
+            const [jobs, totalCount] = await this.prisma.$transaction([
+                this.prisma.job.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        bids: {
+                            include: {
+                                user: {
+                                    select: {
+                                        userId: true,
+                                        name: true,
+                                        companyName: true,
+                                        verifidStatus: true,
+                                        companyDescription: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                }),
+                this.prisma.job.count({ where }),
+            ]);
+
+            // Empty result handle করুন - error throw না করে
+            if (!jobs || jobs.length === 0) {
+                return {
+                    total: 0,
+                    page,
+                    limit,
+                    jobs: [],
+                };
+            }
+
+            // 2️⃣ সব bidder-এর userIds collect করুন
+            const userIds = [
+                ...new Set(jobs.flatMap(job => job.bids.map(bid => bid.userId))),
+            ];
+
+            // 3️⃣ Rating data fetch করুন (যদি bidders থাকে)
+            let ratingMap = {};
+            if (userIds.length > 0) {
+                const ratings = await this.prisma.review.groupBy({
+                    by: ['revieweeId'],
+                    where: {
+                        revieweeId: { in: userIds },
+                    },
+                    _avg: {
+                        rating: true,
+                    },
+                    _count: {
+                        rating: true,
+                    },
+                });
+
+                // 4️⃣ Rating map তৈরি করুন
+                ratingMap = Object.fromEntries(
+                    ratings.map(r => [
+                        r.revieweeId,
+                        {
+                            avgRating: r._avg.rating ?? 0,
+                            totalRating: r._count.rating,
+                        },
+                    ])
+                );
+            }
+
+            // 5️⃣ Jobs এর সাথে rating attach করুন
+            const jobsWithBidderInfo = jobs.map(job => ({
+                jobId: job.jobId,
+                jobTitle: job.jobTitle,
+                jobType: job.jobType,
+                projectDescription: job.projectDescription,
+                address: job.address,
+                city: job.city,
+                estimitedBudget: job.estimitedBudget,
+                jobStatus: job.jobStatus,
+                paymentStatus: job.paymentStatus,
+                createdAt: job.createdAt,
+                updatedAt: job.updatedAt,
+                numberOfElevator: job.numberOfElevator,
+                bids: job.bids.map(bid => ({
+                    bidId: bid.bidId,
+                    bidAmount: bid.bidAmount,
+                    timeline: bid.timeline,
+                    status: bid.status,
+                    brefProposal: bid.brefProposal,
+                    user: {
+                        userId: bid.user.userId,
+                        name: bid.user.name,
+                        companyName: bid.user.companyName,
+                        companyDescription: bid.user.companyDescription,
+                        verifidStatus: bid.user.verifidStatus,
+                        avgRating: ratingMap[bid.userId]?.avgRating ?? 0,
+                        totalRating: ratingMap[bid.userId]?.totalRating ?? 0,
+                    },
+                })),
+            }));
+
+            return {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit),
+                jobs: jobsWithBidderInfo,
+            };
+        } catch (error) {
+            console.error('Error fetching jobs:', error);
+            throw new InternalServerErrorException('Failed to fetch jobs');
+        }
+    }
+
+
+
 
     async getSingleJobs(jobId: string) {
         const findJob = await this.prisma.job.findUnique({
