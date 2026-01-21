@@ -365,7 +365,8 @@ export class PaymentService {
                 jobId: updated.jobId
             },
             data: {
-                paymentStatus: "PAID"
+                paymentStatus: "PAID",
+                jobStatus: "INPROGRESS"
             }
         })
 
