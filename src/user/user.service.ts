@@ -150,19 +150,78 @@ export class UserService {
     };
 
 
+    // async activeJobs(userId: string) {
+    //     const result = await this.prisma.job.findMany({
+    //         where: {
+    //             userId: userId,
+    //             jobStatus: {
+    //                 notIn: ["COMPLITE", "DECLINED"]
+    //             }
+    //         },
+    //         include: {
+    //             bids: {
+    //                 include: {
+    //                     user: true
+    //                 }
+    //             }
+    //         }
+    //     });
+
+    //     return result;
+
+    // };
+
+
     async activeJobs(userId: string) {
         const result = await this.prisma.job.findMany({
             where: {
-                userId: userId,
+                userId,
                 jobStatus: {
-                    notIn: ["COMPLITE", "DECLINED"]
-                }
-            }
+                    notIn: ["COMPLITE", "DECLINED"],
+                },
+            },
+            include: {
+                bids: {
+                    include: {
+                        user: {
+                            include: {
+                                _count: {
+                                    select: {
+                                        reviewsReceived: true,
+                                    },
+                                },
+                                reviewsReceived: {
+                                    select: {
+                                        rating: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         });
 
-        return result;
+        return result.map(job => ({
+            ...job,
+            bids: job.bids.map(bid => {
+                const ratings = bid.user.reviewsReceived.map(r => r.rating);
+                const ratingCount = ratings.length;
+                const averageRating = ratingCount
+                    ? ratings.reduce((a, b) => a + b, 0) / ratingCount
+                    : null;
 
-    };
+                return {
+                    ...bid,
+                    user: {
+                        ...bid.user,
+                        averageRating,
+                        ratingCount,
+                    },
+                };
+            }),
+        }));
+    }
 
     async rcentActivity(userId: string) {
         const result = await this.prisma.nitification.findMany({

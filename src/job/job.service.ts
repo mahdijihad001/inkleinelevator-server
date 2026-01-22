@@ -431,8 +431,6 @@ export class JobService {
     }
 
 
-
-
     async getSingleJobs(jobId: string) {
         const findJob = await this.prisma.job.findUnique({
             where: {
