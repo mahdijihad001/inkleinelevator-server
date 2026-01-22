@@ -304,4 +304,22 @@ export class UserController {
   }
 
 
+  @Get("constructor-approval-short-list")
+  @UseGuards(AuthGuard("jwt"), AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "All Constructor Approval Short List Only For Admin"
+  })
+  @HttpCode(HttpStatus.OK)
+  async constructorApprovalShortList() {
+    const result = await this.userService.shortConstructorListForApproval();
+
+    return {
+      success: true,
+      message: "Constructor Approval Short List Retrived Successfully",
+      data: result
+    }
+
+  }
+
 }

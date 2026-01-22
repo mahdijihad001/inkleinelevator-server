@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -21,7 +21,15 @@ export class AtStrategie extends PassportStrategy(Strategy, "jwt") {
             }
         });
 
-        if (!user) throw new UnauthorizedException()
+        if (!user) throw new UnauthorizedException();
+
+        if (user.role === "ELEVATOR" && user.verifidStatus === "REQUEST") {
+            throw new BadRequestException("You Are Not Approval. Please Contact Platform Admin");
+        };
+
+        if (user.verifidStatus === "SUSPEND") {
+            throw new UnauthorizedException("You Are Suspended"); 
+        }
 
         return user
     }
