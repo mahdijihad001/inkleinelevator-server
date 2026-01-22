@@ -1,4 +1,4 @@
-import { Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
+import { HttpException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -123,6 +123,26 @@ export class UserService {
 
         if (!userExists) {
             throw new NotFoundException("User not found");
+        };
+
+        const findEmail = await this.prisma.user.findUnique({
+            where: {
+                email: payload.email
+            }
+        });
+
+        if (!findEmail) {
+            throw new HttpException("Email Already Exist", 400)
+        }
+
+        const finphone = await this.prisma.user.findUnique({
+            where: {
+                email: payload.phone
+            }
+        })
+
+        if (!finphone) {
+            throw new HttpException("Phone Already Exist", 400)
         }
 
         const updateData: Prisma.UserUpdateInput = {};
@@ -554,6 +574,6 @@ export class UserService {
         return result
     }
 
-    
+
 
 }
