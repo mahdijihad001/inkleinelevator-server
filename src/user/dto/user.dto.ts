@@ -25,6 +25,16 @@ export class UpdateUserProfileDto {
     @IsString()
     @MaxLength(100)
     name?: string;
+    @ApiPropertyOptional({ example: "01783542312212" })
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    phone?: string;
+    @ApiPropertyOptional({ example: "email@gmail.com" })
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    email?: string;
 
     @ApiPropertyOptional({ example: "Acme Elevator Ltd" })
     @IsOptional()
