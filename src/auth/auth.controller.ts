@@ -185,7 +185,7 @@ export class AuthController {
       throw new HttpException('Profile image is required', 400);
     }
 
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     const result = await this.authService.uploadProfile(userId, file);
 
