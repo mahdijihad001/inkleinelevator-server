@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ContentManagementService } from './content-management.service';
 import { CreateHeroDto } from './dto/content.management.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from 'src/guard/admin.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('content-management')
 export class ContentManagementController {
@@ -55,6 +56,43 @@ export class ContentManagementController {
     }
   }
 
+  @Post('upload-media')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Update Hero Media' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        profile: {
+          type: 'string',
+          format: 'binary',
+          description: 'Hero Media Update',
+        },
+      },
+      required: ['profile'],
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('profile', {
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    }),
+  )
+  async uploadMedia(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new HttpException('Image is required', 400);
+    }
 
+    const result = await this.contentManagementService.mediaUpload(file);
 
+    return {
+      success: true,
+      message: 'Media Upload Successfully',
+      data: result,
+    };
+  }
 }
