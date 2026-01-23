@@ -81,6 +81,20 @@ export class PaymentController {
     };
   }
 
+  @Post("/stripe/connectacount-activation-check")
+  @UseGuards(AuthGuard("jwt"), ElevatorGuard)
+  @ApiBearerAuth()
+  async stripeAcountActivationCheck(@Req() req: any) {
+    const userId = req.user.userId;
+
+    const result = await this.paymentService.userStripeAcountIsActiveChech(userId);
+    return {
+      success: true,
+      message: "Statua Activation Status retrived success",
+      data: result
+    }
+  }
+
   @Get('all-relesed-payment')
   @UseGuards(AuthGuard('jwt'), AdminGuard)
   @ApiBearerAuth()

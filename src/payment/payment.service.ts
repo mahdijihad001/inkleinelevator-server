@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, HttpException, Inject, Injectable, NotFoundException, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ElevatorGuard } from 'src/guard/elevator.guard';
@@ -92,6 +92,22 @@ export class PaymentService {
         };
     }
 
+    async userStripeAcountIsActiveChech(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User Not Found");
+
+        const acct = await this.stripe.accounts.retrieve(user.stripeAccountId as string);
+
+        return {
+            status: acct.capabilities?.transfers
+        }
+
+    }
 
     async releasePaymentToConstuctor(paymentId: string) {
         const payment = await this.prisma.payment.findUnique({
@@ -112,11 +128,12 @@ export class PaymentService {
 
         if (!user) throw new NotFoundException("User Not Found");
 
+        if (!user.stripeAccountId) throw new HttpException("Your Stripe Id Not Connected. Please Contruct Admin", 400);
+
         const vendorAmount = payment.amount * 0.90;
         const vendorAmountInCents = Math.round(vendorAmount * 100);
-
-        const acct = await this.stripe.accounts.retrieve("acct_1SsGtNEKZph67h6I");
-        console.log(acct.capabilities);
+        // acct_1SsGtNEKZph67h6I
+        const acct = await this.stripe.accounts.retrieve(user.stripeAccountId);
         if (acct.capabilities?.transfers !== 'active') {
             throw new BadRequestException(
                 'Contractor Stripe account is not ready to receive payments'
@@ -125,7 +142,7 @@ export class PaymentService {
         const result = await this.stripe.transfers.create({
             amount: vendorAmountInCents,
             currency: "usd",
-            destination: "acct_1SsGtNEKZph67h6I",
+            destination: user.stripeAccountId,
             transfer_group: `JOB_${payment.jobId}`,
             metadata: {
                 dbPaymentId: paymentId
