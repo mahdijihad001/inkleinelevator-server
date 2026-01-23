@@ -359,6 +359,11 @@ export class PaymentService {
             }
         })
 
+        const findBid = await this.prisma.bid.findUnique({
+            where: {
+                bidId: paymentIntent.metadata.bidId
+            }
+        })
 
         await this.prisma.job.update({
             where: {
@@ -366,7 +371,8 @@ export class PaymentService {
             },
             data: {
                 paymentStatus: "PAID",
-                jobStatus: "INPROGRESS"
+                jobStatus: "INPROGRESS",
+                acceptedConstructorId: findBid?.userId
             }
         })
 

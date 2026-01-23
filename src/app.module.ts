@@ -18,11 +18,13 @@ import { RecentActivityModule } from './recent-activity/recent-activity.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { ContentManagementAboutModule } from './content-management-about/content-management-about.module';
 import { ContentManagementProcessStepModule } from './content-management-process-step/content-management-process-step.module';
+import { HowItsForContentManagementModule } from './how-its-for-content-management/how-its-for-content-management.module';
+import { FaqModule } from './faq/faq.module';
 
 @Module({
   imports: [PrismaModule, ConfigModule.forRoot({
     isGlobal: true
-  }), AuthModule, JobModule, CloudinaryModule, StripeModule, PaymentModule, BidModule, UserModule, MessageModule, ReviewModule, NotificationModule, RecentActivityModule, ContentManagementModule, ContentManagementAboutModule, ContentManagementProcessStepModule],
+  }), AuthModule, JobModule, CloudinaryModule, StripeModule, PaymentModule, BidModule, UserModule, MessageModule, ReviewModule, NotificationModule, RecentActivityModule, ContentManagementModule, ContentManagementAboutModule, ContentManagementProcessStepModule, HowItsForContentManagementModule, FaqModule],
   controllers: [AppController],
   providers: [AppService, CloudinaryProvider],
   exports: ["CLOUDINARY"]

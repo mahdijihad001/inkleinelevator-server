@@ -125,15 +125,15 @@ export class UserService {
             throw new NotFoundException("User not found");
         };
 
-        const findEmail = await this.prisma.user.findUnique({
-            where: {
-                email: payload.email
-            }
-        });
+        // const findEmail = await this.prisma.user.findUnique({
+        //     where: {
+        //         email: payload.email
+        //     }
+        // });
 
-        if (!findEmail) {
-            throw new HttpException("Email Already Exist", 400)
-        }
+        // if (!findEmail) {
+        //     throw new HttpException("Email Already Exist", 400)
+        // }
 
         const finphone = await this.prisma.user.findUnique({
             where: {
@@ -141,7 +141,7 @@ export class UserService {
             }
         })
 
-        if (!finphone) {
+        if (finphone) {
             throw new HttpException("Phone Already Exist", 400)
         }
 
