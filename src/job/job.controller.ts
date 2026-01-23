@@ -117,40 +117,55 @@ export class JobController {
   @UseGuards(AuthGuard('jwt'), UserGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({
-    summary: "Update Job Only Can Do (USER)"
-  })
+  @ApiOperation({ summary: 'Update Job (PATCH behaviour)' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        jobTitle: { type: 'string', example: 'New Job Title' },
-        jobType: { type: 'string', example: 'Installation' },
-        projectDescription: { type: 'string', example: 'Project description...' },
-        'technicalRequirementsAndCertifications[]': {
+        jobTitle: { type: 'string' },
+        jobType: { type: 'string' },
+        projectDescription: { type: 'string' },
+
+        elevatorType: { type: 'string' },
+        numberOfElevator: { type: 'string', example: '2' },
+        capacity: { type: 'string' },
+        speed: { type: 'string' },
+        address: { type: 'string' },
+        streetAddress: { type: 'string' },
+        city: { type: 'string' },
+        zipCode: { type: 'string' },
+        estimatedBudget: { type: 'string' },
+
+        // 🔥 Certifications
+        existingTechnicalRequirementsAndCertifications: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Multiple certifications - use array format in form-data',
-          example: ['Cert A', 'Cert B', 'Dada B'],
+          example: ['Cert A'],
         },
-        elevatorType: { type: 'string', example: 'Hydraulic' },
-        numberOfElevator: { type: 'string', example: '2' },
-        capacity: { type: 'string', example: '1000kg' },
-        speed: { type: 'string', example: '1.5 m/s' },
-        address: { type: 'string', example: '123 Main St' },
-        streetAddress: { type: 'string', example: 'Block A' },
-        city: { type: 'string', example: 'Dhaka' },
-        zipCode: { type: 'string', example: '1205' },
-        estimatedBudget: { type: 'string', example: '50000' },
+        technicalRequirementsAndCertifications: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['Cert B'],
+        },
+
+        // photos
+        existingPhotos: {
+          type: 'array',
+          items: { type: 'string' },
+        },
         photos: {
           type: 'array',
           items: { type: 'string', format: 'binary' },
-          description: 'Upload new photos (optional)',
+        },
+
+        // documents
+        existingDocuments: {
+          type: 'array',
+          items: { type: 'string' },
         },
         documents: {
           type: 'array',
           items: { type: 'string', format: 'binary' },
-          description: 'Upload new documents (optional)',
         },
       },
     },
@@ -173,73 +188,47 @@ export class JobController {
   ) {
     const userId = req.user.userId;
 
-    const photos = files?.photos ?? [];
-    const documents = files?.documents ?? [];
+    const parseArray = (v: any): string[] =>
+      !v ? [] : Array.isArray(v) ? v : [v];
 
+    body.existingPhotos = parseArray(body.existingPhotos);
+    body.existingDocuments = parseArray(body.existingDocuments);
 
-    photos.forEach((file) => {
-      if (!file.mimetype.startsWith('image/')) {
-        throw new BadRequestException('Photos must be image files');
+    body.existingTechnicalRequirementsAndCertifications =
+      parseArray(body.existingTechnicalRequirementsAndCertifications)
+        .map(v => v.trim())
+        .filter(Boolean);
+
+    body.technicalRequirementsAndCertifications =
+      parseArray(body.technicalRequirementsAndCertifications)
+        .map(v => v.trim())
+        .filter(Boolean);
+
+    if (body.numberOfElevator !== undefined) {
+      const n = parseInt(body.numberOfElevator, 10);
+      if (isNaN(n) || n < 0) {
+        throw new BadRequestException(
+          'numberOfElevator must be a valid number',
+        );
       }
-    });
-
-    documents.forEach((file) => {
-      if (file.mimetype !== 'application/pdf') {
-        throw new BadRequestException('Documents must be PDF files');
-      }
-    });
-
-    let certifications: any = [];
-
-    if (body['technicalRequirementsAndCertifications[]']) {
-      const certs = body['technicalRequirementsAndCertifications[]'];
-      certifications = Array.isArray(certs) ? certs : [certs];
+      body.numberOfElevator = n;
     }
 
-    else if (body.technicalRequirementsAndCertifications) {
-      const certs = body.technicalRequirementsAndCertifications;
-      certifications = Array.isArray(certs) ? certs : [certs];
-    }
-
-    if (certifications.length > 0) {
-      certifications = certifications
-        .map((cert: string) => cert?.trim())
-        .filter((cert: string) => cert && cert.length > 0);
-
-      body.technicalRequirementsAndCertifications = certifications;
-    }
-
-    if (body.numberOfElevator) {
-      const parsed = parseInt(body.numberOfElevator, 10);
-      if (isNaN(parsed) || parsed < 0) {
-        throw new BadRequestException('numberOfElevator must be a valid positive number');
-      }
-      body.numberOfElevator = parsed;
-    }
-
-    const result = await this.jobService.updateJob(
+    return this.jobService.updateJob(
       userId,
       jobId,
       body,
-      photos,
-      documents,
+      files?.photos ?? [],
+      files?.documents ?? [],
     );
-
-    return {
-      success: true,
-      message: "Job Updated Success",
-      data: result
-    }
-
   }
-
 
   @Delete("/job/delete/:jobId")
   @UseGuards(AuthGuard('jwt'), UserGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: "Update Job Only Can Do (USER)"
+    summary: "Delete Job Only Can Do (USER)"
   })
   async deleteJob(@Param("jobId") jobId: string, @Req() req: any) {
     const userId = req.user.userId;

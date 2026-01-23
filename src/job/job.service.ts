@@ -53,31 +53,76 @@ export class JobService {
     async updateJob(
         userId: string,
         jobId: string,
-        dto: updateJobDto,
+        dto: any,
         photos: Express.Multer.File[],
         documents: Express.Multer.File[],
     ) {
-        // Find the job
         const job = await this.prisma.job.findUnique({
             where: { jobId },
         });
 
-        if (!job) {
-            throw new NotFoundException('Job not found');
+        if (!job) throw new NotFoundException('Job not found');
+        if (job.userId !== userId)
+            throw new ForbiddenException('Not allowed');
+
+        // ================= CERTIFICATIONS =================
+        let certifications: string[] =
+            dto.existingTechnicalRequirementsAndCertifications?.length > 0
+                ? dto.existingTechnicalRequirementsAndCertifications
+                : job.technicalRequermentAndCertification ?? [];
+
+        if (dto.technicalRequirementsAndCertifications?.length > 0) {
+            certifications = [
+                ...new Set([
+                    ...certifications,
+                    ...dto.technicalRequirementsAndCertifications,
+                ]),
+            ];
         }
 
-        if (job.userId !== userId) {
-            throw new ForbiddenException('You are not allowed to update this job');
+        // ================= PHOTOS =================
+        let photoUrls: string[] =
+            dto.existingPhotos?.length > 0
+                ? dto.existingPhotos
+                : job.photo ?? [];
+
+        for (const photo of photos) {
+            if (!photo.mimetype.startsWith('image/')) {
+                throw new BadRequestException('Photos must be images');
+            }
+
+            const upload = await this.cloudinaryService.uploadFile(
+                photo,
+                'job/photos',
+            );
+            photoUrls.push(upload.secure_url);
         }
 
-        // Prepare update data with proper type conversions
-        const updateData = this.cleanUpdateData({
+        // ================= DOCUMENTS =================
+        let documentUrls: string[] =
+            dto.existingDocuments?.length > 0
+                ? dto.existingDocuments
+                : job.documents ?? [];
+
+        for (const doc of documents) {
+            if (doc.mimetype !== 'application/pdf') {
+                throw new BadRequestException('Documents must be PDF');
+            }
+
+            const upload = await this.cloudinaryService.uploadFile(
+                doc,
+                'job/documents',
+            );
+            documentUrls.push(upload.secure_url);
+        }
+
+        // ================= CLEAN UPDATE =================
+        const cleanedData = this.cleanUpdateData({
             jobTitle: dto.jobTitle,
             jobType: dto.jobType,
             projectDescription: dto.projectDescription,
-            technicalRequermentAndCertification: dto.technicalRequirementsAndCertifications,
             elevatorType: dto.elevatorType,
-            numberOfElevator: dto.numberOfElevator, // Already converted to number in controller
+            numberOfElevator: dto.numberOfElevator,
             capasity: dto.capacity,
             speed: dto.speed,
             address: dto.address,
@@ -85,56 +130,20 @@ export class JobService {
             city: dto.city,
             zipCode: dto.zipCode,
             estimitedBudget: dto.estimatedBudget,
+
+            ...(certifications.length && {
+                technicalRequermentAndCertification: certifications,
+            }),
+            ...(photoUrls.length && { photo: photoUrls }),
+            ...(documentUrls.length && { documents: documentUrls }),
         });
 
-        // Handle photo uploads
-        let photoUrls = job.photo;
-        if (photos && photos.length > 0) {
-            photoUrls = [];
-            for (const photo of photos) {
-                try {
-                    const upload = await this.cloudinaryService.uploadFile(
-                        photo,
-                        'job/photos',
-                    );
-                    photoUrls.push(upload.secure_url);
-                } catch (error) {
-                    throw new BadRequestException(`Failed to upload photo: ${error.message}`);
-                }
-            }
-        }
-
-        // Handle document uploads
-        let documentUrls = job.documents;
-        if (documents && documents.length > 0) {
-            documentUrls = [];
-            for (const doc of documents) {
-                try {
-                    const upload = await this.cloudinaryService.uploadFile(
-                        doc,
-                        'job/documents',
-                    );
-                    documentUrls.push(upload.secure_url);
-                } catch (error) {
-                    throw new BadRequestException(`Failed to upload document: ${error.message}`);
-                }
-            }
-        }
-
-        // Update the job
-        try {
-            return await this.prisma.job.update({
-                where: { jobId },
-                data: {
-                    ...updateData,
-                    photo: photoUrls,
-                    documents: documentUrls,
-                },
-            });
-        } catch (error) {
-            throw new BadRequestException(`Failed to update job: ${error.message}`);
-        }
+        return this.prisma.job.update({
+            where: { jobId },
+            data: cleanedData,
+        });
     }
+
 
     async createJob(userId: string, dto: CreateJobDto, photos: Express.Multer.File[], documents: Express.Multer.File[]) {
         const photoUrls: string[] = [];
