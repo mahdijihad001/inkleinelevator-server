@@ -339,6 +339,26 @@ export class JobController {
       data: result
     };
   }
+  @Patch("jobs/:jobId/cancle-ready-for-review")
+  @UseGuards(AuthGuard("jwt"))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Mark a job as ready for review (Only For Job Owner)"
+  })
+  async canclePendingReview(
+    @Param("jobId") jobId: string,
+    @Req() req: any
+  ) {
+    const userId = req.user.userId;
+
+    const result = await this.jobService.canclePendingReview(jobId, userId);
+
+    return {
+      success: true,
+      message: "Job Pending Review Cancle",
+      data: result
+    };
+  }
 
   @Patch("jobs/:jobId/complete")
   @UseGuards(AuthGuard("jwt"))

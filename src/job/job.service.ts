@@ -622,6 +622,46 @@ export class JobService {
 
     };
 
+
+    async canclePendingReview(jobId: string, elevatorUserId: string) {
+        const findJob = await this.prisma.job.findFirst({
+            where: {
+                jobId: jobId,
+            },
+            include: {
+                bids: true
+            }
+        });
+
+        if (!findJob) {
+            throw new Error("Job not found");
+        }
+
+        if (findJob?.jobStatus !== "PENDING_REVIEW") throw new HttpException("This Job Already in Progress", 400)
+
+
+
+        const acceptedBid = findJob.bids.find((bid) =>
+            bid.userId === elevatorUserId &&
+            bid.status === "ACCEPTED"
+        );
+
+        if (!acceptedBid) {
+            throw new Error("You are not permitted to access this route");
+        }
+
+        await this.prisma.job.update({
+            where: {
+                jobId: jobId
+            },
+            data: {
+                jobStatus: "INPROGRESS"
+            }
+        });
+
+        return null;
+    }
+
     async compliteRequest(userId: string, jobId: string) {
         const result = await this.prisma.job.findFirst({
             where: {
