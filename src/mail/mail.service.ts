@@ -33,4 +33,13 @@ export class MailService {
         `,
         });
     }
+    async sendMessage(to: string, subject: string, html: any) {
+        return await this.transporter.sendMail({
+            from: `"Inkleinelevator" <${process.env.SMTP_USER}>`,
+            to,
+            subject,
+            html
+        });
+    }
+
 }

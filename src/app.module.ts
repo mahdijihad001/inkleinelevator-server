@@ -22,11 +22,12 @@ import { HowItsForContentManagementModule } from './how-its-for-content-manageme
 import { FaqModule } from './faq/faq.module';
 import { ProtfolioModule } from './protfolio/protfolio.module';
 import { MailModule } from './mail/mail.module';
+import { ContactUserModule } from './contact-user/contact-user.module';
 
 @Module({
   imports: [PrismaModule, ConfigModule.forRoot({
     isGlobal: true
-  }), AuthModule, JobModule, CloudinaryModule, StripeModule, PaymentModule, BidModule, UserModule, MessageModule, ReviewModule, NotificationModule, RecentActivityModule, ContentManagementModule, ContentManagementAboutModule, ContentManagementProcessStepModule, HowItsForContentManagementModule, FaqModule, ProtfolioModule, MailModule],
+  }), AuthModule, JobModule, CloudinaryModule, StripeModule, PaymentModule, BidModule, UserModule, MessageModule, ReviewModule, NotificationModule, RecentActivityModule, ContentManagementModule, ContentManagementAboutModule, ContentManagementProcessStepModule, HowItsForContentManagementModule, FaqModule, ProtfolioModule, MailModule, ContactUserModule],
   controllers: [AppController],
   providers: [AppService, CloudinaryProvider],
   exports: ["CLOUDINARY"]
