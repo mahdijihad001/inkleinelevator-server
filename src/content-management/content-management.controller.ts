@@ -28,8 +28,6 @@ export class ContentManagementController {
 
   // GET
   @Get("get-hero")
-  @UseGuards(AuthGuard("jwt"), AdminGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Hero Section data' })
   @ApiResponse({ status: 200, description: 'Hero section fetched successfully' })
   async get() {
