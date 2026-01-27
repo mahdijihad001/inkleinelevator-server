@@ -15,8 +15,6 @@
 - **Language**: TypeScript
 - **Database ORM**: Prisma
 - **Containerization**: Docker & Docker Compose
-- **Testing**: Jest (unit and e2e tests)
-- **Code Quality**: ESLint, Prettier
 - **Package Manager**: npm
 
 ### License
