@@ -16,6 +16,3 @@
 - **Database ORM**: Prisma
 - **Containerization**: Docker & Docker Compose
 - **Package Manager**: npm
-
-### License
-MIT License - Open source project that is free to use, modify, and distribute with attribution.
