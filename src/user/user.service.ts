@@ -137,7 +137,7 @@ export class UserService {
 
         const finphone = await this.prisma.user.findUnique({
             where: {
-                email: payload.phone
+                email: payload.email
             }
         })
 

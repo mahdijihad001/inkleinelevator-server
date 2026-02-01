@@ -233,7 +233,7 @@ export class AuthService {
             }
         })
 
-        const { password, refreshToken, ...rest } = user;
+        const { password, refreshToken, otp ,...rest } = user;
 
         const reviewCount = reviewStats._count.reviewId;
         const reviewAvg = reviewStats._avg.rating;
