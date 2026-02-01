@@ -135,14 +135,14 @@ export class UserService {
         //     throw new HttpException("Email Already Exist", 400)
         // }
 
-        const finphone = await this.prisma.user.findUnique({
-            where: {
-                email: payload.email
-            }
-        })
+        if (payload.phone) {
+            const finphone = await this.prisma.user.findUnique({
+                where: { phone: payload.phone },
+            });
 
-        if (finphone) {
-            throw new HttpException("Phone Already Exist", 400)
+            if (finphone && finphone.userId !== userId) {
+                throw new HttpException("Phone Already Exist", 400);
+            }
         }
 
         const updateData: Prisma.UserUpdateInput = {};
