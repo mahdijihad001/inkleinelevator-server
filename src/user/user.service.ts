@@ -574,6 +574,15 @@ export class UserService {
         return result
     }
 
-
+    async updateIsAgree(userId: string) {
+        await this.prisma.user.update({
+            where: {
+                userId: userId
+            },
+            data: {
+                isAgree: true
+            }
+        })
+    }
 
 }

@@ -73,7 +73,7 @@ async function bootstrap() {
     ║                                                       ║
     ║   📡 Server: http://localhost:${port}                ║
     ║   📚 Swagger: http://localhost:${port}/docs          ║
-    ║   🔌 WebSocket: ws://localhost:${port}/socket/message  ║
+    ║   🔌 WebSocket: ws://localhost:${port}/socket/message║
     ║                                                       ║
     ╚═══════════════════════════════════════════════════════╝
   `);

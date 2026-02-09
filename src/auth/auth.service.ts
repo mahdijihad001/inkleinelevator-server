@@ -35,7 +35,7 @@ export class AuthService {
         return accountLink.url
     }
 
-    async hashText(text: string) {
+    async hashText(text: string){
         const hash = await bcrypt.hash(text, 10);
         return hash
     };
@@ -86,10 +86,9 @@ export class AuthService {
                     expiresIn: 60 * 60 * 24 * 30
                 }
             )
-
         ]);
 
-        await this.updateRt(user?.userId, rt)
+        await this.updateRt(user?.userId, rt);
 
         return {
             accessToken: at,
@@ -266,9 +265,9 @@ export class AuthService {
 
     }
 
-    async uploadProfile(userId: string, file: Express.Multer.File) {
+    async uploadProfile(userId: string, file: Express.Multer.File){
         const user = await this.prisma.user.findUnique({
-            where: { userId: userId },
+            where: { userId: userId }
         });
 
         if (!user) {
@@ -287,7 +286,6 @@ export class AuthService {
             },
         });
     };
-
 
     async changePassword(
         userId: string,
