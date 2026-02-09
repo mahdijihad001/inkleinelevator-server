@@ -322,4 +322,24 @@ export class UserController {
 
   }
 
+
+  @Patch("agree-update")
+  @UseGuards(AuthGuard("jwt"))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Update Is Agree"
+  })
+  @HttpCode(HttpStatus.OK)
+  async updateIsAgree(@Req() req: any) {
+    const userId = req.user.userId;
+    const result = await this.userService.updateIsAgree(userId);
+
+    return {
+      success: true,
+      message: "Update Is Agree",
+      data: result
+    }
+
+  }
+
 }
