@@ -35,7 +35,7 @@ export class AuthService {
         return accountLink.url
     }
 
-    async hashText(text: string){
+    async hashText(text: string) {
         const hash = await bcrypt.hash(text, 10);
         return hash
     };
@@ -131,33 +131,96 @@ export class AuthService {
             role: data.role,
         };
 
+        // if (data.role === 'ELEVATOR') {
+        //     if (!data.companyName || !files.licenseInfo || !files.businessLogo) {
+        //         throw new HttpException(
+        //             'Company Name, License Info, and Business Logo are required for ELEVATOR role',
+        //             400,
+        //         );
+        //     }
+
+        //     const businessLogoUpload: any =
+        //         await this.CloudinaryService.uploadFile(
+        //             files.businessLogo[0],
+        //             'business-logos',
+        //         );
+
+        //     const licenseInfoUpload: any =
+        //         await this.CloudinaryService.uploadFile(
+        //             files.licenseInfo[0],
+        //             'licenses',
+        //         );
+
+        //     userData.companyName = data.companyName;
+        //     userData.licenseInfo = licenseInfoUpload?.secure_url;
+        //     userData.businessLogo = businessLogoUpload?.secure_url;
+        //     userData.stripeAccountId = await this.constractorStripeAccount(data.email)
+        // }
+
+
         if (data.role === 'ELEVATOR') {
-            if (!data.companyName || !files.licenseInfo || !files.businessLogo) {
+            if (
+                !data.companyName ||
+                !files.businessLogo?.length ||
+                !files.licenseInfo?.length
+            ) {
                 throw new HttpException(
                     'Company Name, License Info, and Business Logo are required for ELEVATOR role',
                     400,
                 );
             }
 
-            const businessLogoUpload: any =
-                await this.CloudinaryService.uploadFile(
-                    files.businessLogo[0],
-                    'business-logos',
-                );
+            const businessLogoUpload = await this.CloudinaryService.uploadFile(
+                files.businessLogo[0],
+                'business-logos',
+            );
 
-            const licenseInfoUpload: any =
-                await this.CloudinaryService.uploadFile(
-                    files.licenseInfo[0],
-                    'licenses',
-                );
+            const licenseInfoUpload = await this.CloudinaryService.uploadFile(
+                files.licenseInfo[0],
+                'licenses',
+            );
 
             userData.companyName = data.companyName;
             userData.licenseInfo = licenseInfoUpload?.secure_url;
             userData.businessLogo = businessLogoUpload?.secure_url;
-            userData.stripeAccountId = await this.constractorStripeAccount(data.email)
+
+            try {
+                userData.stripeAccountId =
+                    await this.constractorStripeAccount(data.email);
+            } catch (error) {
+                throw new HttpException("Stripe account failed", 500);
+            }
         }
 
+
         return this.prisma.user.create({ data: userData });
+    }
+
+    async signUpUser(data: ISignUp) {
+        const isExist = await this.prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: data.email },
+                    { phone: data.phone }
+                ]
+            },
+        });
+
+        if (isExist) {
+            throw new HttpException("Email or Phone Already exist", 400);
+        }
+
+        const hashedPassword = await this.hashPassword(data.password);
+
+        return this.prisma.user.create({
+            data: {
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                password: hashedPassword,
+                role: 'USER',
+            }
+        });
     }
 
     async signIn(data: { email: string, password: string }) {
@@ -232,7 +295,7 @@ export class AuthService {
             }
         })
 
-        const { password, refreshToken, otp ,...rest } = user;
+        const { password, refreshToken, otp, ...rest } = user;
 
         const reviewCount = reviewStats._count.reviewId;
         const reviewAvg = reviewStats._avg.rating;
@@ -265,7 +328,7 @@ export class AuthService {
 
     }
 
-    async uploadProfile(userId: string, file: Express.Multer.File){
+    async uploadProfile(userId: string, file: Express.Multer.File) {
         const user = await this.prisma.user.findUnique({
             where: { userId: userId }
         });
