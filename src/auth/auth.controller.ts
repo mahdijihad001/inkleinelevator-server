@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Post, Req, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ChangePassword, ChangePasswordDto, ForgotPasswordDto, SignInDto, SignUpDto, verifyOtp } from './dto/user.request.dto';
+import { ChangePassword, ChangePasswordDto, ForgotPasswordDto, SignInDto, SignUpDto, UserSignUpDto, verifyOtp } from './dto/user.request.dto';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
@@ -8,6 +8,22 @@ import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
+
+
+
+  @Post('signup/user')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'User Registration' })
+  async signUpUser(@Body() dto: UserSignUpDto) {
+
+    const result = await this.authService.signUpUser(dto);
+
+    return {
+      success: true,
+      message: 'User Registration Success',
+      data: result,
+    };
+  }
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
